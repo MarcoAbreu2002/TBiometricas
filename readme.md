@@ -23,6 +23,11 @@ sudo usermod -aG docker $USER
 Para importar o docker fazer:
 ```bash
 tar --no-same-owner -xjvf meudocker.tar.bz2
-docker import meudocker.tar tbmesi #sha256:388ca49fa3fac1c5a33ed5fa8ab21fc9811cab8fdb1426dfa13b085c6bb66220
-docker run --name dockerfinal -it tbmesi /bin/bash 
+sudo docker import meudocker.tar tbmesi #sha256:388ca49fa3fac1c5a33ed5fa8ab21fc9811cab8fdb1426dfa13b085c6bb66220
+sudo docker run --name dockerfinal -it tbmesi /bin/bash 
+```
+
+Dentro do docker fazer:
+```bash
+service ssh restart
 ```
