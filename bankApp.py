@@ -14,7 +14,7 @@ from email.message import EmailMessage
 import io
 import subprocess
 # GUI (Tkinter) Related Imports
-from tkinter import Tk, Label, Entry, Button, StringVar, messagebox, Frame, simpledialog, Toplevel
+from tkinter import Tk, Label, Entry, Button, StringVar, messagebox, Frame, simpledialog, Toplevel, Text
 from PIL import Image, ImageTk
 
 # Data Handling and ML Libraries
@@ -189,7 +189,7 @@ def register_face(username, conn=None):
 
             # Process the captured frame
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            face_locations = face_recognition.face_locations(rgb_frame)
+            face_locations = face_recognition.face_locations(rgb_frame, model='cnn')
             face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
             if len(face_encodings) == 1:
@@ -201,7 +201,6 @@ def register_face(username, conn=None):
                     conn = sqlite3.connect(db_path, timeout=10)
 
                 cursor = conn.cursor()
-                encryption_key = load_aes_key()
                 cursor.execute(
                     'UPDATE users SET face_embedding=? WHERE username=?',
                     (sqlite3.Binary(face_embedding), username)
@@ -209,7 +208,6 @@ def register_face(username, conn=None):
                 conn.commit()
 
                 print("Face registered successfully!")
-                messagebox.showinfo("Success", "Face registered successfully!")
                 log_event(f"Face registered for user {username}")
                 registered = True
             else:
@@ -271,7 +269,7 @@ def authenticate_face(username):
                 continue
 
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            face_locations = face_recognition.face_locations(rgb_frame)
+            face_locations = face_recognition.face_locations(rgb_frame, model='cnn')
             face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
 
             if len(face_encodings) == 1:
@@ -377,8 +375,28 @@ def load_aes_key(host='andre@172.17.0.2', remote_path='/aes_key.key'):
         print(f"Error fetching the key: {e.stderr.decode()}")
         return None
 
+def ask_terms_and_conditions():
+    """Ask the user to accept the terms and conditions."""
+    response = messagebox.askquestion(
+        "Terms and Conditions",
+        "Do you accept the Terms and Conditions and the Privacy Policy to proceed with registration?\n\n"
+        "Terms and Conditions:\n- You must provide accurate information.\n"
+        "- You agree not to use the application for illegal activities.\n\n"
+        "Privacy Policy:\n- Your data will be securely stored and not shared without your consent.\n"
+        "- You can request data deletion at any time."
+    )
+    return response == 'yes'
+
 def register_user():
     """Register a new user with improved security."""
+
+    user_accepted = ask_terms_and_conditions()
+    if not user_accepted:
+        messagebox.showinfo("Info", "You must accept the Terms and Conditions to proceed.")
+        show_login()
+        return
+    
+
     username = reg_username.get().strip()
     password = reg_password.get().strip()
     confirm_password = reg_password_confirm.get().strip()
@@ -621,7 +639,7 @@ def loginAfterIDLE(username):
     idle_password_entry.bind("<KeyRelease>", on_key_release_idle)
 
     def handle_idle_login():
-        global security_flag
+        global security_flag, is_idle, is_logged
         entered_password = idle_password_entry.get()
         hashed_password = user[2]  # Assuming the password hash is at index 2
         if isinstance(hashed_password, str):
@@ -636,6 +654,7 @@ def loginAfterIDLE(username):
             log_event(f"Incorrect password for user {username}")
             messagebox.showerror("Error", "Incorrect password.")
             on_close()
+            return
 
         is_idle = False
 
@@ -841,6 +860,15 @@ button_style = {
     "bd": 2
 }
 
+def force_quit():
+    try:
+        # Stop any background threads here if applicable
+        app.destroy()  # Forcefully destroy the app
+    except Exception as e:
+        print(f"Error during quit: {e}")  # Log errors, if needed
+    finally:
+        app.quit()  # Ensure the app is closed
+
 
 # Variables
 reg_username = StringVar()
@@ -919,7 +947,7 @@ login_password_entry.bind("<KeyPress>", on_key_press_password)
 login_password_entry.bind("<KeyRelease>", on_key_release_password)
 Button(login_frame, text="Login", command=login_user, **button_style).pack(pady=15)
 Button(login_frame, text="Go to Register", command=show_register, **button_style).pack(pady=5)
-Button(login_frame, text="Exit", command=app.quit, bg="#e53935", fg="white", font=font_medium, relief="solid", bd=2).pack(pady=10)
+Button(login_frame, text="Exit", command=force_quit, bg="#e53935", fg="white", font=font_medium, relief="solid", bd=2).pack(pady=10)
 
 # Updated Home Frame
 home_frame = Frame(app, bg="#FFFFFF")
