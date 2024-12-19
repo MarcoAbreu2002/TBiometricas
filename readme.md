@@ -31,3 +31,8 @@ Dentro do docker fazer:
 ```bash
 service ssh restart
 ```
+
+Para iniciar fazer:
+```bash
+python3 bankApp.py
+```
